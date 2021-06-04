@@ -177,3 +177,14 @@ resource "google_sql_database_instance" "instance" {
 
   deletion_protection = "true"
 }
+
+resource "google_project_iam_member" "cloudsql-storage-admin" {
+  role = "roles/storage.admin"
+  member = "serviceAccount:${google_sql_database_instance.instance.service_account_email_address}"
+}
+
+resource "google_sql_user" "users" {
+  name     = "composer-env-account@gcp-test-149405.iam"
+  instance = "${google_sql_database_instance.instance.name}"
+  type     = "CLOUD_IAM_SERVICE_ACCOUNT"
+}

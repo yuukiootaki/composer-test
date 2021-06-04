@@ -10,7 +10,12 @@ from airflow.operators.bash_operator import BashOperator
 #     PostgresToGoogleCloudStorageOperator,
 # )
 
-from airflow.contrib.operators.gcp_sql_operator import CloudSqlInstanceExportOperator
+from airflow.contrib.operators.gcp_sql_operator import (
+    CloudSqlInstanceExportOperator,
+    CloudSqlQueryOperator,
+)
+from airflow.contrib.operators.gcs_to_bq import GoogleCloudStorageToBigQueryOperator
+
 from airflow.utils.dates import days_ago
 
 
@@ -44,6 +49,15 @@ with DAG(
         retries=3,
     )
 
+    t3 = CloudSqlQueryOperator(
+        task_id="query",
+        gcp_cloudsql_conn_id="user-db",
+        sql=[
+            "create table if not exists users (id SERIAL NOT NULL, name TEXT, PRIMARY KEY (id));",
+            "insert into users values (0, 'hoge')",
+        ],
+    )
+
     # t3 = PostgresToGoogleCloudStorageOperator(
     #     task_id="postgresToGCS",
     #     sql="select * from users;",
@@ -54,19 +68,18 @@ with DAG(
     #     postgres_conn_id="user-db",
     #     google_cloud_storage_conn_id="google_cloud_default",
     # )
-    EXPORT_URI = "gs://composer-test-hoge/dump.sql"
+    EXPORT_URI = "gs://composer-test-hoge/dump.csv"
     export_body = {
         "exportContext": {
-            "databases": ["users"],
+            "databases": ["user-db"],
             "fileType": "csv",
             "uri": EXPORT_URI,
             "sqlExportOptions": {"tables": ["users"], "schemaOnly": False},
-            "offload": False,
             "csvExportOptions": {"selectQuery": "select * from users;"},
         }
     }
 
-    t3 = CloudSqlInstanceExportOperator(
+    t4 = CloudSqlInstanceExportOperator(
         task_id="export",
         instance="user-db",
         body=export_body,
@@ -75,5 +88,19 @@ with DAG(
         api_version="v1beta4",
     )
 
+    # t5 = GoogleCloudStorageToBigQueryOperator(
+    #     task_id="load-to-bigquery",
+    #     bucket="composer-test-hoge",
+    #     source_objects=["dump.csv"],
+    #     destination_project_dataset_table="gcp-test-149405.example_dataset",
+    #     schema_fields=[
+    #         {"name": "id", "type": "NUMBER", "mode": "NULLABLE"},
+    #         {"name": "name", "type": "STRING", "mode": "NULLABLE"},
+    #     ],
+    #     write_disposition="WRITE_TRUNCATE",
+    # )
+
     t1 >> t2
     t2 >> t3
+    t3 >> t4
+    # t4 >> t5
