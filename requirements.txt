@@ -1,0 +1,2 @@
+black
+apache-airflow[postgres,gcp]
