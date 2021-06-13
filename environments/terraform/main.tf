@@ -12,9 +12,9 @@ terraform {
 }
 
 provider "google" {
-  project = "gcp-test-149405"
-  region  = "us-central1"
-  zone    = "us-central1-a"
+  project = var.gcp_project.project_id
+  region  = var.gcp_project.region
+  zone    = var.gcp_project.zone
 }
 
 resource "google_composer_environment" "test" {
@@ -52,10 +52,6 @@ resource "google_composer_environment" "test" {
       image_version  = "composer-1.16.5-airflow-1.10.15"
       python_version = 3
     }
-
-    # database_config {
-    #   machine_type = "db-n1-standard-2"
-    # }
   }
 }
 
@@ -126,38 +122,6 @@ resource "google_storage_bucket" "composer-test" {
   uniform_bucket_level_access = true
 }
 
-# resource "google_bigquery_table" "user" {
-#   dataset_id = google_bigquery_dataset.default.dataset_id
-#   table_id   = "user"
-# 
-#   time_partitioning {
-#     type = "DAY"
-#   }
-# 
-#   labels = {
-#     env = "default"
-#   }
-# 
-#   schema = <<EOF
-# [
-#   {
-#     "name": "id",
-#     "type": "STRING",
-#     "mode": "REQUIRED",
-#     "description": "The id"
-#   },
-#   {
-#     "name": "name",
-#     "type": "STRING",
-#     "mode": "REQUIRED",
-#     "description": "The name of the user."
-#   }
-# ]
-# EOF
-# 
-# }
-# 
-
 resource "google_sql_database" "database" {
   name     = "user-db"
   instance = google_sql_database_instance.instance.name
@@ -175,16 +139,22 @@ resource "google_sql_database_instance" "instance" {
     }
   }
 
-  deletion_protection = "true"
+  deletion_protection = "false"
 }
 
 resource "google_project_iam_member" "cloudsql-storage-admin" {
-  role = "roles/storage.admin"
+  role   = "roles/storage.admin"
   member = "serviceAccount:${google_sql_database_instance.instance.service_account_email_address}"
 }
 
 resource "google_sql_user" "users" {
   name     = "composer-env-account@gcp-test-149405.iam"
-  instance = "${google_sql_database_instance.instance.name}"
+  instance = google_sql_database_instance.instance.name
   type     = "CLOUD_IAM_SERVICE_ACCOUNT"
+}
+
+resource "google_sql_user" "postgres-user" {
+  name     = "postgres"
+  instance = google_sql_database_instance.instance.name
+  password = "system"
 }
