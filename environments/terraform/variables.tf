@@ -6,6 +6,6 @@ variable "gcp_project" {
   })
   description = "gcp project"
   default = {
-    project_id = "gcp-test-149405"
+    project_id = "PROJECT_ID"
   }
 }
