@@ -32,8 +32,8 @@ with DAG(
     tags=["example"],
 ) as dag:
     FILE_NAME = "dump_{{ ts }}.csv"
-    EXPORT_URI = "gs://composer-test-hoge/" + FILE_NAME
-    PROJECT_ID = "gcp-test-149405"
+    EXPORT_URI = "gs://GCS_BUCKET/" + FILE_NAME
+    PROJECT_ID = "PROJECT_ID"
     BIGQUERY_DATASET = "example_dataset"
     BIGQUERY_TABLE = "users"
 
